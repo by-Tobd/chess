@@ -225,7 +225,7 @@ public class Board {
             if (!Board.isPositionSet(target.getAccessibleFields(this), king.getPosition())) continue;
 
             boolean blocked = false;
-            for (Piece piece : ownedPieces.get(king.getPlayer())) {
+            outer: for (Piece piece : ownedPieces.get(king.getPlayer())) {
                 if (Board.isPositionSet(piece.getAccessibleFields(this), target.getPosition())) {
                     blocked = true;
                     break;
@@ -239,7 +239,7 @@ public class Board {
                 while (!current.equals(target.getPosition())) {
                     if (Board.isPositionSet(piece.getAccessibleFields(this), current)) {
                         blocked = true;
-                        break;
+                        break outer;
                     }
                     current = current.add(delta);
                 }
