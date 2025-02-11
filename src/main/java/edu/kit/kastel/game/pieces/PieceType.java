@@ -17,7 +17,7 @@ public enum PieceType {
                 Board.setPosition(bitSet, front);
             }
 
-            if (position.y() == ((player == Player.WHITE) ? 6 : 1)) {
+            if (!board.getPiece(position).wasMoved()) {
                 Vector2D twoFront = front.add(player.getPawnDirection().getVector());
                 if (board.getPiece(twoFront) == null && !board.positionOutOfBounds(twoFront.x(), twoFront.y())) {
                     Board.setPosition(bitSet, twoFront);
@@ -85,6 +85,21 @@ public enum PieceType {
             for (Vector2D diagonal : Direction.getDiagonalVectors()) {
                 if (board.isFieldAccessible(position.add(diagonal), player)) {
                     Board.setPosition(set, position.add(diagonal));
+                }
+            }
+
+            if (!board.getPiece(position).wasMoved()) {
+                for (Direction direction : new Direction[] { Direction.LEFT, Direction.RIGHT }) {
+                    Vector2D current = position.add(direction.getVector());
+                    while (board.getPiece(current) == null && !board.positionOutOfBounds(current.x(), current.y())) {
+                        current = current.add(direction.getVector());
+                    }
+                    Piece piece = board.getPiece(current);
+                    if (piece.getPieceType() != PieceType.ROOK || piece.getPlayer() != player || piece.wasMoved()) {
+                        continue;
+                    }
+
+                    Board.setPosition(set, position.add(direction.getVector()).add(direction.getVector()));
                 }
             }
 

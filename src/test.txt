@@ -1,0 +1,10 @@
+start
+move g1 h3
+move a7 a6
+move e2 e3
+move a6 a5
+move f1 e2
+move a5 a4
+print
+move e1 g1
+print

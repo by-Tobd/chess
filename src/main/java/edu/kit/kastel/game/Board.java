@@ -162,6 +162,25 @@ public class Board {
         pieces[move.getStart().y()][move.getStart().x()] = null;
         pieces[move.getTarget().y()][move.getTarget().x()] = piece;
 
+        if (piece.getPieceType() == PieceType.KING && move.getDistance() > 1) {
+            Piece rook;
+            Vector2D delta = move.getTarget().subtract(move.getStart()).signum();
+            Vector2D current = move.getStart().add(delta);
+            while (true) {
+                if (getPiece(current) != null && getPiece(current).getPieceType() == PieceType.ROOK) {
+                    rook = getPiece(current);
+                    break;
+                }
+                current = current.add(delta);
+            }
+
+            pieces[rook.getPosition().y()][rook.getPosition().x()] = null;
+            Vector2D newPosition = move.getStart().add(delta);
+
+            pieces[newPosition.y()][newPosition.x()] = rook;
+            rook.setPosition(newPosition);
+        }
+
         if (move.getTarget().equals(enPassantSquare)) {
             Vector2D piecePosition = enPassantSquare.subtract(piece.getPlayer().getPawnDirection().getVector());
             getPiece(piecePosition).setPosition(null);
@@ -224,6 +243,7 @@ public class Board {
         for (Piece target : ownedPieces.get(attacker)) {
             if (!Board.isPositionSet(target.getAccessibleFields(this), king.getPosition())) continue;
 
+            //TODO: Check how many different moves are needed to defend
             boolean blocked = false;
             outer: for (Piece piece : ownedPieces.get(king.getPlayer())) {
                 if (Board.isPositionSet(piece.getAccessibleFields(this), target.getPosition())) {

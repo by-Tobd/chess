@@ -16,4 +16,8 @@ public class Move {
     public Vector2D getTarget() {
         return target;
     }
+
+    public int getDistance() {
+        return Math.max(Math.abs(target.x() - start.x()), Math.abs(target.y() - start.y()));
+    }
 }
