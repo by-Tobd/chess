@@ -13,7 +13,7 @@ public class StartCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-
+        commandHandler.getGame().reset();
     }
 }
 

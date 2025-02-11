@@ -31,6 +31,10 @@ public class CommandHandler {
 
     private void initCommands() {
         addCommand(new StartCommand(this));
+        addCommand(new PrintCommand(this));
+        addCommand(new QuitCommand(this));
+        addCommand(new MoveCommand(this));
+
     }
 
     private void addCommand(Command command) {
@@ -64,6 +68,7 @@ public class CommandHandler {
 
                 try {
                     command.execute(args);
+                    System.out.println("Ok");
                 } catch (InvalidCommandArgumentException e) {
                     System.out.println(e.getMessage());
                 }
