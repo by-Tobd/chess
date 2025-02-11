@@ -35,10 +35,15 @@ public class MoveCommand extends Command {
         }
 
         Move move = new Move(parseIdentifier(args[1]), parseIdentifier(args[2]));
+        boolean isMate = false;
         try {
-            commandHandler.getGame().doMove(move);
+            isMate = commandHandler.getGame().doMove(move);
         } catch (InvalidMoveException e) {
             throw new InvalidCommandArgumentException(e.getRawMessage());
+        }
+
+        if (isMate) {
+            System.out.println(commandHandler.getGame().getWinner() + " won");
         }
     }
 }

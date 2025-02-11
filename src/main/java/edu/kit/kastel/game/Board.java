@@ -10,6 +10,7 @@ public class Board {
 
     private final Piece[][] pieces;
     private Vector2D enPassantSquare;
+    private boolean isMate = false;
 
     private final Map<Player, BitSet> attackedFields;
     private final Map<Player, List<Piece>> ownedPieces;
@@ -40,16 +41,54 @@ public class Board {
         }
     }
 
+    private Piece getKing(Player player) {
+        for (Piece candidate : ownedPieces.get(player)) {
+            if (candidate.getPieceType() == PieceType.KING) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    public boolean isInCheck(Player player, Move move) {
+        Piece king = getKing(player);
+        if (king == null) {
+            return false;
+        }
+
+        for (Player other : Player.values()) {
+            if (other == player) continue;
+            if (Board.isPositionSet(attackedFields.get(other), king.getPosition())) {
+                for (Piece piece : ownedPieces.get(other)) {
+                    BitSet accessibleFields = piece.getAccessibleFields(this);
+                    if (Board.isPositionSet(accessibleFields, king.getPosition())) {
+                        if (piece.getPieceType() == PieceType.KNIGHT || piece.getPieceType() == PieceType.PAWN) {
+                            return true;
+                        }
+                        Vector2D delta = piece.getPosition().subtract(king.getPosition()).signum();
+                        Vector2D current = king.getPosition().add(delta);
+                        boolean blocked = false;
+                        while (!current.equals(piece.getPosition())) {
+                            if (getPiece(current) != null) {
+                                blocked = true;
+                                continue;
+                            }
+                            current = current.add(delta);
+                        }
+                        if (!blocked) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isPiecePinned(Piece piece) {
         if (piece.getPieceType() == PieceType.KING) return false;
 
-        Piece king = null;
-        for (Piece candidate : ownedPieces.get(piece.getPlayer())) {
-            if (candidate.getPieceType() == PieceType.KING) {
-                king = candidate;
-                break;
-            }
-        }
+        Piece king = getKing(piece.getPlayer());
         if (king == null) {
             return false;
         }
@@ -94,6 +133,10 @@ public class Board {
             addIteratively(set, position, player, direction.getVector());
         }
         return set;
+    }
+
+    public boolean isMate() {
+        return isMate;
     }
 
     public boolean isFieldAccessible(Vector2D position, Player player) {
@@ -148,6 +191,65 @@ public class Board {
             }
             attackedFields.put(player, set);
         }
+
+        for (Player player : Player.values()) {
+            Piece king = getKing(player);
+            if (king == null) continue;
+
+            for (Player other : Player.values()) {
+                if (other == player) continue;
+
+                if (Board.isPositionSet(attackedFields.get(other), king.getPosition())) {
+                    if (isCheckMate(king, other)) {
+                        isMate = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isCheckMate(Piece king, Player attacker) {
+        if (king.getPieceType() != PieceType.KING) return false;
+
+        BitSet accessibleFields = king.getAccessibleFields(this);
+        BitSet both = new BitSet();
+        both.or(accessibleFields);
+        both.andNot(attackedFields.get(attacker));
+
+        if (!both.isEmpty()) {
+            return false;
+        }
+
+        for (Piece target : ownedPieces.get(attacker)) {
+            if (!Board.isPositionSet(target.getAccessibleFields(this), king.getPosition())) continue;
+
+            boolean blocked = false;
+            for (Piece piece : ownedPieces.get(king.getPlayer())) {
+                if (Board.isPositionSet(piece.getAccessibleFields(this), target.getPosition())) {
+                    blocked = true;
+                    break;
+                }
+
+                if (!target.getAccessibleFields(this).intersects(piece.getAccessibleFields(this))) {
+                    continue;
+                }
+                Vector2D delta = target.getPosition().subtract(king.getPosition()).signum();
+                Vector2D current = king.getPosition().add(delta);
+                while (!current.equals(target.getPosition())) {
+                    if (Board.isPositionSet(piece.getAccessibleFields(this), current)) {
+                        blocked = true;
+                        break;
+                    }
+                    current = current.add(delta);
+                }
+
+            }
+            if (!blocked) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean positionOutOfBounds(int x, int y) {

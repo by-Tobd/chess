@@ -1,6 +1,7 @@
 package edu.kit.kastel.game;
 
 import edu.kit.kastel.game.pieces.Piece;
+import edu.kit.kastel.game.pieces.PieceType;
 
 import java.util.BitSet;
 import java.util.List;
@@ -10,8 +11,11 @@ public class Game {
     private static final String ERROR_MESSAGE_INVALID_FIELD = "Invalid field.";
     private static final String ERROR_MESSAGE_INVALID_MOVE = "Invalid move";
     private static final String ERROR_MESSAGE_PIECE_IS_PINNED = "Pinned piece.";
+    private static final String ERROR_MESSAGE_CHECK = "You are in check.";
 
     private boolean isActive = false;
+    private Player winner;
+
     private Player currentPlayer;
     private Board board;
 
@@ -22,7 +26,7 @@ public class Game {
         currentPlayer = Player.WHITE;
     }
 
-    public void doMove(Move move) throws InvalidMoveException {
+    public boolean doMove(Move move) throws InvalidMoveException {
         if (!board.moveInBounds(move)) {
             throw new InvalidMoveException(ERROR_MESSAGE_INVALID_FIELD);
         }
@@ -41,8 +45,23 @@ public class Game {
             throw new InvalidMoveException(ERROR_MESSAGE_PIECE_IS_PINNED);
         }
 
+        if (piece.getPieceType() != PieceType.KING && board.isInCheck(currentPlayer, move)) {
+            throw new InvalidMoveException(ERROR_MESSAGE_CHECK);
+        }
+
         board.movePiece(move);
         nextPlayer();
+
+        if (board.isMate()) {
+            winner = piece.getPlayer();
+            isActive = false;
+        }
+
+        return board.isMate();
+    }
+
+    public Player getWinner() {
+        return winner;
     }
 
     private void nextPlayer() {
