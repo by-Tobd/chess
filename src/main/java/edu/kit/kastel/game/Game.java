@@ -9,6 +9,7 @@ public class Game {
     private static final String ERROR_MESSAGE_INVALID_PIECE = "Invalid piece.";
     private static final String ERROR_MESSAGE_INVALID_FIELD = "Invalid field.";
     private static final String ERROR_MESSAGE_INVALID_MOVE = "Invalid move";
+    private static final String ERROR_MESSAGE_PIECE_IS_PINNED = "Pinned piece.";
 
     private boolean isActive = false;
     private Player currentPlayer;
@@ -30,13 +31,15 @@ public class Game {
         if (piece == null || piece.getPlayer() != currentPlayer) {
             throw new InvalidMoveException(ERROR_MESSAGE_INVALID_PIECE);
         }
-        BitSet accessibleFields = piece.getAccessibleFields(move.getStart(), board);
+        BitSet accessibleFields = piece.getAccessibleFields(board);
 
         if (!Board.isPositionSet(accessibleFields, move.getTarget())) {
             throw new InvalidMoveException(ERROR_MESSAGE_INVALID_MOVE);
         }
 
-        //check pin
+        if (board.isPiecePinned(piece)) {
+            throw new InvalidMoveException(ERROR_MESSAGE_PIECE_IS_PINNED);
+        }
 
         board.movePiece(move);
         nextPlayer();

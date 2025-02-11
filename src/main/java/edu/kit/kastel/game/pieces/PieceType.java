@@ -6,7 +6,6 @@ import edu.kit.kastel.game.Player;
 import edu.kit.kastel.game.Vector2D;
 
 import java.util.BitSet;
-import java.util.List;
 
 public enum PieceType {
     PAWN('P') {
@@ -89,6 +88,7 @@ public enum PieceType {
                 }
             }
 
+            set.andNot(board.getAttackedFields(player.next()));
             return set;
         }
     };

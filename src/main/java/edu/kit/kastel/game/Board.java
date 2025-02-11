@@ -3,9 +3,7 @@ package edu.kit.kastel.game;
 import edu.kit.kastel.game.pieces.Piece;
 import edu.kit.kastel.game.pieces.PieceType;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Board {
     public static final int SIZE = 8;
@@ -14,12 +12,15 @@ public class Board {
     private Vector2D enPassantSquare;
 
     private final Map<Player, BitSet> attackedFields;
+    private final Map<Player, List<Piece>> ownedPieces;
 
     public Board(StartConfiguration startConfiguration) {
         pieces = new Piece[SIZE][SIZE];
         attackedFields = new HashMap<>();
+        ownedPieces = new HashMap<>();
         for (Player player : Player.values()) {
             attackedFields.put(player, new BitSet(SIZE * SIZE));
+            ownedPieces.put(player, new ArrayList<>());
         }
 
         startConfiguration.setupPieces(this);
@@ -37,6 +38,35 @@ public class Board {
             }
             current = current.add(step);
         }
+    }
+
+    public boolean isPiecePinned(Piece piece) {
+        if (piece.getPieceType() == PieceType.KING) return false;
+
+        Piece king = null;
+        for (Piece candidate : ownedPieces.get(piece.getPlayer())) {
+            if (candidate.getPieceType() == PieceType.KING) {
+                king = candidate;
+                break;
+            }
+        }
+        if (king == null) {
+            return false;
+        }
+
+        Vector2D delta = piece.getPosition().subtract(king.getPosition()).signum();
+        Vector2D current = piece.getPosition().add(delta);
+        while (getPiece(current) == null && !positionOutOfBounds(current.x(), current.y())) {
+            current = current.add(delta);
+        }
+        Piece target = getPiece(current);
+
+        if (Math.abs(delta.x()) == Math.abs(delta.y())) {
+            return target != null && target.getPlayer() != piece.getPlayer() && (target.getPieceType() == PieceType.BISHOP || target.getPieceType() == PieceType.QUEEN);
+        } else if (delta.x() == 0 || delta.y() == 0) {
+            return target != null && target.getPlayer() != piece.getPlayer() && (target.getPieceType() == PieceType.ROOK || target.getPieceType() == PieceType.QUEEN);
+        }
+        return false;
     }
 
     public BitSet getDiagonalAccessibleFields(Vector2D position, Player player) {
@@ -79,18 +109,44 @@ public class Board {
             return;
         }
         Piece piece = getPiece(move.getStart());
+        Piece target = getPiece(move.getTarget());
+
+        if (target != null) {
+            target.setPosition(null);
+        }
+        piece.setPosition(move.getTarget());
 
         pieces[move.getStart().y()][move.getStart().x()] = null;
         pieces[move.getTarget().y()][move.getTarget().x()] = piece;
 
         if (move.getTarget().equals(enPassantSquare)) {
-            pieces[move.getTarget().y() - piece.getPlayer().getPawnDirection().getVector().y()][move.getTarget().x()] = null;
+            Vector2D piecePosition = enPassantSquare.subtract(piece.getPlayer().getPawnDirection().getVector());
+            getPiece(piecePosition).setPosition(null);
+            pieces[piecePosition.y()][piecePosition.x()] = null;
         }
 
         if (piece.getPieceType() == PieceType.PAWN && Math.abs(move.getStart().y() - move.getTarget().y()) == 2) {
             enPassantSquare = move.getStart().add(piece.getPlayer().getPawnDirection().getVector());
         } else {
             enPassantSquare = null;
+        }
+        updateAttackedFields();
+    }
+
+    public BitSet getAttackedFields(Player player) {
+        return attackedFields.get(player);
+    }
+
+    private void updateAttackedFields() {
+        for (Player player : Player.values()) {
+            BitSet set = new BitSet(SIZE * SIZE);
+            for (Piece piece : ownedPieces.get(player)) {
+                if (piece.getPosition() == null) {
+                    continue;
+                }
+                set.or(piece.getAccessibleFields(this));
+            }
+            attackedFields.put(player, set);
         }
     }
 
@@ -105,6 +161,8 @@ public class Board {
     }
 
     public void placePiece(Piece piece, int row, int col) {
+        ownedPieces.get(piece.getPlayer()).add(piece);
+        piece.setPosition(new Vector2D(col, row));
         pieces[row][col] = piece;
     }
 
